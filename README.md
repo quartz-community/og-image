@@ -10,15 +10,22 @@ npx quartz plugin add github:quartz-community/og-image
 
 ## Usage
 
-```ts
-// quartz.config.ts
+```yaml title="quartz.config.yaml"
+plugins:
+  - source: github:quartz-community/og-image
+    enabled: true
+```
+
+For advanced use cases, you can override in TypeScript:
+
+```ts title="quartz.ts (override)"
 import * as ExternalPlugin from "./.quartz/plugins";
 
-const config: QuartzConfig = {
-  plugins: {
-    emitters: [ExternalPlugin.CustomOgImages()],
-  },
-};
+ExternalPlugin.CustomOgImages({
+  colorScheme: "lightMode",
+  width: 1200,
+  height: 630,
+});
 ```
 
 ## Configuration
@@ -36,7 +43,7 @@ const config: QuartzConfig = {
 
 ## Documentation
 
-See the [Quartz documentation](https://quartz.jzhao.xyz/) for more information.
+See the [Quartz documentation](https://quartz.jzhao.xyz/plugins/CustomOgImages) for more information.
 
 ## License
 
