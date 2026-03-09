@@ -138,7 +138,9 @@ export async function fetchTtf(
   try {
     await fs.access(cachePath);
     return fs.readFile(cachePath);
-  } catch {}
+  } catch {
+    /* file not cached, will fetch below */
+  }
 
   const cssResponse = await fetch(
     `https://fonts.googleapis.com/css2?family=${fontName}:wght@${weight}`,

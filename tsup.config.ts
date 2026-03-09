@@ -1,4 +1,5 @@
 import { defineConfig } from "tsup";
+import type { BuildOptions } from "esbuild";
 
 export default defineConfig({
   entry: {
@@ -13,7 +14,7 @@ export default defineConfig({
   splitting: false,
   outDir: "dist",
   external: ["sharp"],
-  esbuildOptions(options: any) {
+  esbuildOptions(options: BuildOptions) {
     options.jsx = "automatic";
     options.jsxImportSource = "preact";
   },
