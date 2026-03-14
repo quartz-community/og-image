@@ -46,7 +46,11 @@
   },
   "peerDependencies": {
     "@jackyzha0/quartz": "^4.5.2",
-    "preact": "^10.0.0"
+    "preact": "^10.0.0",
+    "reading-time": "^1.5.0",
+    "satori": "^0.12.0",
+    "sharp": "^0.33.0",
+    "vfile": "^6.0.3"
   },
   "peerDependenciesMeta": {
     "@jackyzha0/quartz": {
@@ -54,17 +58,23 @@
     },
     "preact": {
       "optional": false
+    },
+    "reading-time": {
+      "optional": true
+    },
+    "satori": {
+      "optional": true
+    },
+    "sharp": {
+      "optional": true
+    },
+    "vfile": {
+      "optional": true
     }
   },
   "dependencies": {
     "@quartz-community/types": "github:quartz-community/types",
-    "@quartz-community/utils": "github:quartz-community/utils",
-    "reading-time": "^1.5.0",
-    "satori": "^0.12.0",
-    "sharp": "^0.33.0",
-    "tsup": "^8.5.0",
-    "typescript": "^5.9.3",
-    "vfile": "^6.0.3"
+    "@quartz-community/utils": "github:quartz-community/utils"
   },
   "devDependencies": {
     "@types/hast": "^3.0.4",
@@ -76,7 +86,9 @@
     "eslint-config-prettier": "^9.1.0",
     "preact": "^10.28.2",
     "prettier": "^3.6.2",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
   },
   "quartz": {
     "name": "og-image",
