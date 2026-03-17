@@ -1,3 +1,4 @@
+import { createRequire } from 'module';
 import path from 'path';
 import fs from 'fs/promises';
 import { styleText } from 'util';
@@ -6,16 +7,17 @@ import { joinSegments } from '@quartz-community/types';
 import { unescapeHTML } from '@quartz-community/utils';
 import { jsxs, Fragment, jsx } from 'preact/jsx-runtime';
 
+const require$1 = createRequire(import.meta.url);
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __require = /* @__PURE__ */ ((x2) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x2, {
-  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+var __require = /* @__PURE__ */ ((x2) => typeof require$1 !== "undefined" ? require$1 : typeof Proxy !== "undefined" ? new Proxy(x2, {
+  get: (a, b) => (typeof require$1 !== "undefined" ? require$1 : a)[b]
 }) : x2)(function(x2) {
-  if (typeof require !== "undefined") return require.apply(this, arguments);
+  if (typeof require$1 !== "undefined") return require$1.apply(this, arguments);
   throw Error('Dynamic require of "' + x2 + '" is not supported');
 });
 var __esm = (fn, res) => function __init() {

@@ -13,7 +13,11 @@ export default defineConfig({
   target: "es2022",
   splitting: false,
   outDir: "dist",
+  platform: "node",
   external: ["sharp"],
+  banner: {
+    js: 'import { createRequire } from "module"; const require = createRequire(import.meta.url);',
+  },
   esbuildOptions(options: BuildOptions) {
     options.jsx = "automatic";
     options.jsxImportSource = "preact";
