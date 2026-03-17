@@ -93,6 +93,7 @@
     "category": "emitter",
     "version": "1.0.0",
     "quartzVersion": ">=5.0.0",
+    "requiresInstall": true,
     "dependencies": [],
     "defaultOrder": 50,
     "defaultEnabled": true,
