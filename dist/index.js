@@ -5,6 +5,7 @@ import { styleText } from 'util';
 import sharp from 'sharp';
 import { joinSegments } from '@quartz-community/types';
 import { unescapeHTML } from '@quartz-community/utils';
+import { getIconCode } from '@quartz-community/utils/emoji';
 import { jsxs, Fragment, jsx } from 'preact/jsx-runtime';
 
 const require$1 = createRequire(import.meta.url);
@@ -23788,27 +23789,6 @@ function getFontSpecificationName(spec) {
 }
 
 // src/emoji.ts
-var U200D = String.fromCharCode(8205);
-var UFE0Fg = /\uFE0F/g;
-function getIconCode(char) {
-  return toCodePoint(char.indexOf(U200D) < 0 ? char.replace(UFE0Fg, "") : char);
-}
-function toCodePoint(unicodeSurrogates) {
-  const r = [];
-  let c2 = 0, p = 0, i = 0;
-  while (i < unicodeSurrogates.length) {
-    c2 = unicodeSurrogates.charCodeAt(i++);
-    if (p) {
-      r.push((65536 + (p - 55296 << 10) + (c2 - 56320)).toString(16));
-      p = 0;
-    } else if (55296 <= c2 && c2 <= 56319) {
-      p = c2;
-    } else {
-      r.push(c2.toString(16));
-    }
-  }
-  return r.join("-");
-}
 var emojimap = void 0;
 async function loadEmoji(code) {
   if (!emojimap) {

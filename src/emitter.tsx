@@ -15,13 +15,10 @@ import type {
 import { joinSegments } from "@quartz-community/types";
 import { unescapeHTML } from "@quartz-community/utils";
 import type { JSX } from "preact";
-import {
-  type FontSpecification,
-  type Theme,
-  type ThemeKey,
-  getFontSpecificationName,
-} from "./theme.js";
-import { loadEmoji, getIconCode } from "./emoji.js";
+import { type ThemeKey } from "@quartz-community/types";
+import { getIconCode } from "@quartz-community/utils/emoji";
+import { type FontSpecification, type Theme, getFontSpecificationName } from "./theme.js";
+import { loadEmoji } from "./emoji.js";
 
 const QUARTZ = "quartz";
 

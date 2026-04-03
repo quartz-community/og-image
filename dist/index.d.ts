@@ -1,24 +1,7 @@
 import { SatoriOptions } from 'satori';
-import { QuartzEmitterPlugin, GlobalConfiguration, FullSlug } from '@quartz-community/types';
+import { QuartzEmitterPlugin, ThemeKey, GlobalConfiguration, FullSlug } from '@quartz-community/types';
 export { QuartzEmitterPlugin } from '@quartz-community/types';
 import { JSX } from 'preact';
-
-interface ColorScheme {
-    light: string;
-    lightgray: string;
-    gray: string;
-    darkgray: string;
-    dark: string;
-    secondary: string;
-    tertiary: string;
-    highlight: string;
-    textHighlight: string;
-}
-interface Colors {
-    lightMode: ColorScheme;
-    darkMode: ColorScheme;
-}
-type ThemeKey = keyof Colors;
 
 type Frontmatter = {
     title?: string;
