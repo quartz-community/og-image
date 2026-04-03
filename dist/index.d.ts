@@ -10,7 +10,7 @@ type Frontmatter = {
     socialImage?: string;
     tags?: string[];
 } & Record<string, unknown>;
-type QuartzPluginData = {
+type LocalQuartzPluginData = {
     slug?: FullSlug;
     frontmatter?: Frontmatter;
     description?: string;
@@ -37,7 +37,7 @@ type ImageOptions = {
     description: string;
     fonts: SatoriOptions["fonts"];
     cfg: GlobalConfiguration;
-    fileData: QuartzPluginData;
+    fileData: LocalQuartzPluginData;
 };
 declare const CustomOgImagesEmitterName = "CustomOgImages";
 declare const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>>;

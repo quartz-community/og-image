@@ -11,9 +11,11 @@ import type {
   FilePath,
   FullSlug,
   GlobalConfiguration,
+  QuartzPluginData,
 } from "@quartz-community/types";
 import { joinSegments } from "@quartz-community/types";
 import { unescapeHTML } from "@quartz-community/utils";
+import { getDate } from "@quartz-community/utils/sort";
 import type { JSX } from "preact";
 import { type ThemeKey } from "@quartz-community/types";
 import { getIconCode } from "@quartz-community/utils/emoji";
@@ -30,7 +32,7 @@ type Frontmatter = {
   tags?: string[];
 } & Record<string, unknown>;
 
-type QuartzPluginData = {
+type LocalQuartzPluginData = {
   slug?: FullSlug;
   frontmatter?: Frontmatter;
   description?: string;
@@ -61,10 +63,6 @@ function getFileExtension(path: string): string | undefined {
 
 function isAbsoluteURL(url: string): boolean {
   return /^https?:\/\//.test(url);
-}
-
-function getDate(cfg: GlobalConfiguration, data: Record<string, unknown>): Date | undefined {
-  return (data.dates as Record<string, Date> | undefined)?.[cfg.defaultDateType ?? "modified"];
 }
 
 function formatDate(d: Date, locale: string = "en-US"): string {
@@ -192,7 +190,7 @@ export type ImageOptions = {
   description: string;
   fonts: SatoriOptions["fonts"];
   cfg: GlobalConfiguration;
-  fileData: QuartzPluginData;
+  fileData: LocalQuartzPluginData;
 };
 
 export const defaultImage: SocialImageOptions["imageStructure"] = ({
@@ -208,7 +206,7 @@ export const defaultImage: SocialImageOptions["imageStructure"] = ({
   const fontBreakPoint = 32;
   const useSmallerFont = title.length > fontBreakPoint;
 
-  const rawDate = getDate(cfg, fileData);
+  const rawDate = getDate(fileData as QuartzPluginData);
   const date = rawDate ? formatDate(rawDate, cfg.locale) : null;
 
   const { minutes } = readingTime(fileData.text ?? "");

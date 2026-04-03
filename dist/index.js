@@ -5,6 +5,7 @@ import { styleText } from 'util';
 import sharp from 'sharp';
 import { joinSegments } from '@quartz-community/types';
 import { unescapeHTML } from '@quartz-community/utils';
+import { getDate } from '@quartz-community/utils/sort';
 import { getIconCode } from '@quartz-community/utils/emoji';
 import { jsxs, Fragment, jsx } from 'preact/jsx-runtime';
 
@@ -23820,9 +23821,6 @@ function getFileExtension(path2) {
 function isAbsoluteURL(url) {
   return /^https?:\/\//.test(url);
 }
-function getDate(cfg, data) {
-  return data.dates?.[cfg.defaultDateType ?? "modified"];
-}
 function formatDate(d2, locale = "en-US") {
   return d2.toLocaleDateString(locale, {
     year: "numeric",
@@ -23913,7 +23911,7 @@ var defaultImage = ({
   const theme = cfg.theme;
   const fontBreakPoint = 32;
   const useSmallerFont = title.length > fontBreakPoint;
-  const rawDate = getDate(cfg, fileData);
+  const rawDate = getDate(fileData);
   const date = rawDate ? formatDate(rawDate, cfg.locale) : null;
   const { minutes } = (0, import_reading_time.default)(fileData.text ?? "");
   const readingTimeText = (userOpts.readingTimeText ?? ((time) => `${time} min read`))(
