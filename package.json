@@ -97,7 +97,38 @@
     "dependencies": [],
     "defaultOrder": 50,
     "defaultEnabled": true,
-    "defaultOptions": {}
+    "defaultOptions": {
+      "colorScheme": "lightMode",
+      "width": 1200,
+      "height": 630,
+      "excludeRoot": false,
+      "defaultTitle": "Untitled",
+      "defaultDescription": "No description provided"
+    },
+    "optionSchema": {
+      "colorScheme": {
+        "type": "enum",
+        "values": [
+          "lightMode",
+          "darkMode"
+        ]
+      },
+      "width": {
+        "type": "number"
+      },
+      "height": {
+        "type": "number"
+      },
+      "excludeRoot": {
+        "type": "boolean"
+      },
+      "defaultTitle": {
+        "type": "string"
+      },
+      "defaultDescription": {
+        "type": "string"
+      }
+    }
   },
   "engines": {
     "node": ">=22",
