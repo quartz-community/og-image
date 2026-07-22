@@ -1,6 +1,6 @@
 {
   "name": "@quartz-community/og-image",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "OG image emitter plugin for Quartz. Generates social preview images using satori and sharp.",
   "type": "module",
   "license": "MIT",
@@ -46,7 +46,7 @@
   },
   "peerDependencies": {
     "preact": "^10.0.0",
-    "sharp": "^0.33.0",
+    "sharp": ">=0.33.0",
     "vfile": "^6.0.3"
   },
   "peerDependenciesMeta": {
@@ -78,7 +78,7 @@
     "prettier": "^3.6.2",
     "reading-time": "^1.5.0",
     "satori": "^0.12.0",
-    "sharp": "^0.33.0",
+    "sharp": "^0.34.5",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vfile": "^6.0.3",
