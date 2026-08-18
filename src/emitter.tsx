@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs/promises";
+import { availableParallelism } from "node:os";
 import type { Readable } from "node:stream";
 import { styleText } from "node:util";
 import satori, { type FontWeight, type SatoriOptions } from "satori";
@@ -56,6 +57,10 @@ export type SocialImageFileData = {
 const defaultHeaderWeight = [700];
 const defaultBodyWeight = [400];
 
+// the output dir is cleaned once per process, so a dir we've made stays made. holding the
+// promise rather than a flag keeps a concurrent write from racing a half-finished mkdir.
+const ensuredDirs = new Map<string, Promise<string | undefined>>();
+
 const write = async (args: {
   ctx: BuildCtx;
   content: string | Buffer | Readable;
@@ -64,7 +69,12 @@ const write = async (args: {
 }): Promise<FilePath> => {
   const pathToPage = joinSegments(args.ctx.argv.output, args.slug + args.ext) as FilePath;
   const dir = path.dirname(pathToPage);
-  await fs.mkdir(dir, { recursive: true });
+  let ensured = ensuredDirs.get(dir);
+  if (!ensured) {
+    ensured = fs.mkdir(dir, { recursive: true });
+    ensuredDirs.set(dir, ensured);
+  }
+  await ensured;
   await fs.writeFile(pathToPage, args.content);
   return pathToPage;
 };
@@ -581,20 +591,27 @@ const defaultOptions: SocialImageOptions = {
   readingTimeText: (minutes) => `${minutes} min read`,
 };
 
+let iconBase64Promise: Promise<string | undefined> | undefined;
+function getIconBase64(): Promise<string | undefined> {
+  iconBase64Promise ??= (async () => {
+    const iconPath = joinSegments(QUARTZ, "static", "icon.png");
+    try {
+      const iconData = await fs.readFile(iconPath);
+      return `data:image/png;base64,${iconData.toString("base64")}`;
+    } catch {
+      console.warn(styleText("yellow", `Warning: Could not find icon at ${iconPath}`));
+      return undefined;
+    }
+  })();
+  return iconBase64Promise;
+}
+
 async function generateSocialImage(
   { cfg, description, fonts, title, fileData }: ImageOptions,
   userOpts: SocialImageOptions,
-): Promise<Readable> {
+): Promise<Buffer> {
   const { width, height } = userOpts;
-  const iconPath = joinSegments(QUARTZ, "static", "icon.png");
-  let iconBase64: string | undefined = undefined;
-
-  try {
-    const iconData = await fs.readFile(iconPath);
-    iconBase64 = `data:image/png;base64,${iconData.toString("base64")}`;
-  } catch {
-    console.warn(styleText("yellow", `Warning: Could not find icon at ${iconPath}`));
-  }
+  const iconBase64 = await getIconBase64();
 
   const imageComponent = userOpts.imageStructure({
     cfg,
@@ -619,7 +636,52 @@ async function generateSocialImage(
     },
   });
 
-  return sharp(Buffer.from(svg)).webp({ quality: 40 });
+  return sharp(Buffer.from(svg)).webp({ quality: 40 }).toBuffer();
+}
+
+// satori runs on the main thread but sharp encodes off it, so a small pool lets the two overlap
+const maxConcurrency = Math.max(1, Math.min(8, availableParallelism()));
+
+/**
+ * Runs `fn` over `items` with at most `limit` in flight, yielding results as they settle.
+ */
+export async function* mapPool<T, R>(
+  items: Iterable<T>,
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): AsyncGenerator<R> {
+  type Settled = { idx: number; value?: R; err?: unknown };
+  const inFlight = new Map<number, Promise<Settled>>();
+  const remaining = items[Symbol.iterator]();
+  let exhausted = false;
+  let next = 0;
+
+  while (!exhausted || inFlight.size > 0) {
+    while (!exhausted && inFlight.size < limit) {
+      const step = remaining.next();
+      if (step.done) {
+        exhausted = true;
+        break;
+      }
+
+      const idx = next++;
+      inFlight.set(
+        idx,
+        fn(step.value).then(
+          (value) => ({ idx, value }),
+          (err) => ({ idx, err }),
+        ),
+      );
+    }
+
+    if (inFlight.size === 0) break;
+
+    // every task settles into a value, so bailing out below can't orphan a rejected promise
+    const { idx, value, err } = await Promise.race(inFlight.values());
+    inFlight.delete(idx);
+    if (err) throw err;
+    yield value as R;
+  }
 }
 
 async function processOgImage(
@@ -638,7 +700,7 @@ async function processOgImage(
     frontmatter?.description ??
     unescapeHTML(fileData.description?.trim() ?? fullOptions.defaultDescription ?? "");
 
-  const stream = await generateSocialImage(
+  const image = await generateSocialImage(
     {
       title,
       description,
@@ -651,7 +713,7 @@ async function processOgImage(
 
   return write({
     ctx,
-    content: stream,
+    content: image,
     slug: `${slug}-og-image` as FullSlug,
     ext: ".webp",
   });
@@ -686,11 +748,13 @@ export const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>> = 
         return;
       }
 
-      for (const [_tree, vfile] of content) {
-        const data = vfile.data as QuartzPluginData;
-        if (data.frontmatter?.socialImage !== undefined) continue;
-        yield processOgImage(ctx, data, fonts, fullOptions);
-      }
+      const files = content
+        .map(([_tree, vfile]) => vfile.data as QuartzPluginData)
+        .filter((data) => data.frontmatter?.socialImage === undefined);
+
+      yield* mapPool(files, maxConcurrency, (data) =>
+        processOgImage(ctx, data, fonts, fullOptions),
+      );
     },
     async *partialEmit(ctx, _content, _resources, changeEvents) {
       const cfg = ctx.cfg.configuration;
@@ -703,14 +767,15 @@ export const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>> = 
         return;
       }
 
-      for (const changeEvent of changeEvents) {
-        if (!changeEvent.file) continue;
-        const data = changeEvent.file.data as QuartzPluginData;
-        if (data.frontmatter?.socialImage !== undefined) continue;
-        if (changeEvent.type === "add" || changeEvent.type === "change") {
-          yield processOgImage(ctx, data, fonts, fullOptions);
-        }
-      }
+      const files = changeEvents
+        .filter((changeEvent) => changeEvent.type === "add" || changeEvent.type === "change")
+        .map((changeEvent) => changeEvent.file?.data as QuartzPluginData | undefined)
+        .filter((data) => data !== undefined && data.frontmatter?.socialImage === undefined)
+        .map((data) => data as QuartzPluginData);
+
+      yield* mapPool(files, maxConcurrency, (data) =>
+        processOgImage(ctx, data, fonts, fullOptions),
+      );
     },
     externalResources: (ctx) => {
       if (!ctx.cfg.configuration.baseUrl) {
