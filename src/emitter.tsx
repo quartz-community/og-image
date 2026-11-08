@@ -347,7 +347,14 @@ export type SocialImageOptions = {
   width: number;
   excludeRoot: boolean;
   defaultTitle?: string;
+  /** Shown when a page has no description of its own (see `useGeneratedDescription`). */
   defaultDescription?: string;
+  /**
+   * Use the description another plugin generated for the page (the description plugin's
+   * excerpt of its content) when the frontmatter has none. `false` skips it, so pages without
+   * a frontmatter `socialDescription` or `description` show `defaultDescription`. Default `true`.
+   */
+  useGeneratedDescription?: boolean;
   readingTimeText?: (minutes: number) => string;
   imageStructure: (
     options: ImageOptions & {
@@ -578,6 +585,7 @@ const defaultOptions: SocialImageOptions = {
   excludeRoot: false,
   defaultTitle: "Untitled",
   defaultDescription: "No description provided",
+  useGeneratedDescription: true,
   readingTimeText: (minutes) => `${minutes} min read`,
 };
 
@@ -622,6 +630,21 @@ async function generateSocialImage(
   return sharp(Buffer.from(svg)).webp({ quality: 40 });
 }
 
+/**
+ * The description on a page's social image: the frontmatter's `socialDescription` or
+ * `description`, else the generated one (unless `useGeneratedDescription` is `false`), else
+ * `defaultDescription` (jackyzha0/quartz#2470).
+ */
+export function resolveDescription(
+  fileData: Pick<SocialImageFileData, "frontmatter" | "description">,
+  opts: Pick<SocialImageOptions, "defaultDescription" | "useGeneratedDescription">,
+): string {
+  const own = fileData.frontmatter?.socialDescription ?? fileData.frontmatter?.description;
+  if (own != null) return own;
+  const generated = opts.useGeneratedDescription === false ? undefined : fileData.description;
+  return unescapeHTML(generated?.trim() || opts.defaultDescription || "");
+}
+
 async function processOgImage(
   ctx: BuildCtx,
   fileData: QuartzPluginData,
@@ -633,10 +656,7 @@ async function processOgImage(
   const titleSuffix = cfg.pageTitleSuffix ?? "";
   const frontmatter = fileData.frontmatter;
   const title = (frontmatter?.title ?? fullOptions.defaultTitle ?? "") + titleSuffix;
-  const description =
-    frontmatter?.socialDescription ??
-    frontmatter?.description ??
-    unescapeHTML(fileData.description?.trim() ?? fullOptions.defaultDescription ?? "");
+  const description = resolveDescription(fileData as SocialImageFileData, fullOptions);
 
   const stream = await generateSocialImage(
     {
