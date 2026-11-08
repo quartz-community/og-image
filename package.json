@@ -103,7 +103,8 @@
       "height": 630,
       "excludeRoot": false,
       "defaultTitle": "Untitled",
-      "defaultDescription": "No description provided"
+      "defaultDescription": "No description provided",
+      "useGeneratedDescription": true
     },
     "optionSchema": {
       "colorScheme": {
@@ -127,6 +128,9 @@
       },
       "defaultDescription": {
         "type": "string"
+      },
+      "useGeneratedDescription": {
+        "type": "boolean"
       }
     }
   },
