@@ -23,9 +23,12 @@ plugins:
       defaultTitle: Untitled
       defaultDescription: No description provided
       useGeneratedDescription: true
+      imageFormat: webp
 ```
 
-`baseUrl` must be set in `configuration`: the image meta tags need absolute URLs and are not emitted without it. Each page gets an image at `<slug>-og-image.webp`; pages with a `socialImage` in their frontmatter are skipped.
+`baseUrl` must be set in `configuration`: the image meta tags need absolute URLs and are not emitted without it. Each page gets an image at `<slug>-og-image` plus the extension for your chosen `imageFormat` (`.webp` by default, or `.jpg` for `jpeg`); pages with a `socialImage` in their frontmatter are skipped.
+
+Some platforms (including Facebook) do not accept WebP in `og:image`. Set `imageFormat: jpeg` in your plugin options to emit JPEG instead; the default remains WebP so existing sites are unchanged.
 
 The options that take functions (`imageStructure`, `readingTimeText`) need a TypeScript override:
 
@@ -52,6 +55,7 @@ ExternalPlugin.CustomOgImages({
 | `defaultTitle`            | `string`                      | `"Untitled"`                | The title to use if a page has no title.                                                                                                    |
 | `defaultDescription`      | `string`                      | `"No description provided"` | The description to use if a page has no description.                                                                                        |
 | `useGeneratedDescription` | `boolean`                     | `true`                      | Use the generated description (the description plugin's excerpt) when the frontmatter has none. `false` shows `defaultDescription` instead. |
+| `imageFormat`             | `"webp" \| "jpeg"`            | `"webp"`                    | Encoded output format for generated images. Use `"jpeg"` when crawlers reject WebP in `og:image`.                                           |
 | `readingTimeText`         | `(minutes: number) => string` | `` `${minutes} min read` `` | Formats the reading time shown by the built-in design (TS override only).                                                                   |
 | `imageStructure`          | `function`                    | built-in design             | A component that defines the structure of the generated image (TS override only).                                                           |
 

@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import type { Readable } from "node:stream";
 import { styleText } from "node:util";
 import satori, { type FontWeight, type SatoriOptions } from "satori";
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
 import readingTime from "reading-time";
 import type {
   QuartzEmitterPlugin,
@@ -71,6 +71,59 @@ const write = async (args: {
 
 function getFileExtension(path: string): string | undefined {
   return path.match(/\.([^./?#]+)(?:[?#]|$)/)?.[1];
+}
+
+/**
+ * One row per output format. A new format (for example PNG) is a new entry:
+ * extension, MIME type, optional alias extensions, and the Sharp encoder.
+ * Call sites only look up the selected row.
+ */
+export const OG_IMAGE_FORMATS = {
+  webp: {
+    ext: ".webp",
+    mime: "image/webp",
+    aliases: [] as const,
+    encode: (image: Sharp) => image.webp({ quality: 40 }),
+  },
+  jpeg: {
+    ext: ".jpg",
+    mime: "image/jpeg",
+    aliases: ["jpeg"] as const,
+    encode: (image: Sharp) => image.jpeg({ quality: 85 }),
+  },
+} satisfies Record<
+  string,
+  {
+    ext: `.${string}`;
+    mime: `image/${string}`;
+    aliases: readonly string[];
+    encode: (image: Sharp) => Sharp;
+  }
+>;
+
+export type OgImageFormat = keyof typeof OG_IMAGE_FORMATS;
+
+const MIME_BY_EXTENSION: Record<string, string> = {};
+for (const format of Object.values(OG_IMAGE_FORMATS)) {
+  MIME_BY_EXTENSION[format.ext.slice(1)] = format.mime;
+  for (const alias of format.aliases) {
+    MIME_BY_EXTENSION[alias] = format.mime;
+  }
+}
+
+/** The registry row for `format`, or WebP when the value is missing or unknown. */
+export function ogImageOutput(format: string | undefined) {
+  if (format && Object.hasOwn(OG_IMAGE_FORMATS, format)) {
+    return OG_IMAGE_FORMATS[format as OgImageFormat];
+  }
+  return OG_IMAGE_FORMATS.webp;
+}
+
+/** MIME type for a generated or user-supplied image URL. Unknown extensions stay `image/<ext>`. */
+export function ogImageMimeType(imagePath: string): string {
+  const ext = getFileExtension(imagePath);
+  if (ext && MIME_BY_EXTENSION[ext]) return MIME_BY_EXTENSION[ext];
+  return `image/${ext ?? "png"}`;
 }
 
 function isAbsoluteURL(url: string): boolean {
@@ -355,6 +408,11 @@ export type SocialImageOptions = {
    * a frontmatter `socialDescription` or `description` show `defaultDescription`. Default `true`.
    */
   useGeneratedDescription?: boolean;
+  /**
+   * Encoded file written for each page. Default `"webp"`. Use `"jpeg"` for crawlers
+   * (such as Facebook) that do not accept WebP in `og:image`.
+   */
+  imageFormat: OgImageFormat;
   readingTimeText?: (minutes: number) => string;
   imageStructure: (
     options: ImageOptions & {
@@ -586,6 +644,7 @@ const defaultOptions: SocialImageOptions = {
   defaultTitle: "Untitled",
   defaultDescription: "No description provided",
   useGeneratedDescription: true,
+  imageFormat: "webp",
   readingTimeText: (minutes) => `${minutes} min read`,
 };
 
@@ -627,7 +686,7 @@ async function generateSocialImage(
     },
   });
 
-  return sharp(Buffer.from(svg)).webp({ quality: 40 });
+  return ogImageOutput(userOpts.imageFormat).encode(sharp(Buffer.from(svg)));
 }
 
 /**
@@ -673,7 +732,7 @@ async function processOgImage(
     ctx,
     content: stream,
     slug: `${slug}-og-image` as FullSlug,
-    ext: ".webp",
+    ext: ogImageOutput(fullOptions.imageFormat).ext,
   });
 }
 
@@ -750,13 +809,14 @@ export const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>> = 
                 : `https://${baseUrl}/static/${userDefinedOgImagePath}`;
             }
 
+            const generatedExt = ogImageOutput(fullOptions.imageFormat).ext;
             const generatedOgImagePath = isRealFile
-              ? `https://${baseUrl}/${pageData.slug!}-og-image.webp`
+              ? `https://${baseUrl}/${pageData.slug!}-og-image${generatedExt}`
               : undefined;
             const defaultOgImagePath = `https://${baseUrl}/static/og-image.png`;
             const ogImagePath =
               userDefinedOgImagePath ?? generatedOgImagePath ?? defaultOgImagePath;
-            const ogImageMimeType = `image/${getFileExtension(ogImagePath) ?? "png"}`;
+            const imageMimeType = ogImageMimeType(ogImagePath);
             return (
               <>
                 {!userDefinedOgImagePath && (
@@ -768,7 +828,7 @@ export const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>> = 
                 <meta property="og:image" content={ogImagePath} />
                 <meta property="og:image:url" content={ogImagePath} />
                 <meta name="twitter:image" content={ogImagePath} />
-                <meta property="og:image:type" content={ogImageMimeType} />
+                <meta property="og:image:type" content={imageMimeType} />
               </>
             );
           },

@@ -103,7 +103,8 @@
       "excludeRoot": false,
       "defaultTitle": "Untitled",
       "defaultDescription": "No description provided",
-      "useGeneratedDescription": true
+      "useGeneratedDescription": true,
+      "imageFormat": "webp"
     },
     "optionSchema": {
       "colorScheme": {
@@ -130,6 +131,13 @@
       },
       "useGeneratedDescription": {
         "type": "boolean"
+      },
+      "imageFormat": {
+        "type": "enum",
+        "values": [
+          "webp",
+          "jpeg"
+        ]
       }
     }
   },
