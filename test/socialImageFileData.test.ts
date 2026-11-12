@@ -51,6 +51,7 @@ function makeUserOpts(): UserOpts {
     width: 1200,
     height: 630,
     excludeRoot: false,
+    imageFormat: "webp",
   };
 }
 
