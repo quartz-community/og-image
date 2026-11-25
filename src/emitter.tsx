@@ -620,7 +620,8 @@ async function generateSocialImage(
     fonts,
     loadAdditionalAsset: async (languageCode: string, segment: string) => {
       if (languageCode === "emoji") {
-        return await loadEmoji(getIconCode(segment));
+        // No image in the map: the fonts draw it (instead of failing the build).
+        return (await loadEmoji(getIconCode(segment))) ?? [];
       }
 
       return languageCode;
