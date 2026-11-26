@@ -31,4 +31,17 @@ describe("resolveDescription (jackyzha0/quartz#2470)", () => {
       resolveDescription({ frontmatter: { description: "Own" }, description: "Gen" }, opts),
     ).toBe("Own");
   });
+
+  it("decodes the generated description's entities exactly once", () => {
+    // A note mentioning `&lt;br&gt;` (and `<br>`): the description is HTML-escaped once.
+    expect(
+      resolveDescription(
+        {
+          frontmatter: {},
+          description: "Write &amp;lt;br&amp;gt; for &lt;br&gt;, &amp;amp; for &amp;",
+        },
+        defaults,
+      ),
+    ).toBe("Write &lt;br&gt; for <br>, &amp; for &");
+  });
 });
