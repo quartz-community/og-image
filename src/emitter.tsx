@@ -589,6 +589,16 @@ const defaultOptions: SocialImageOptions = {
   readingTimeText: (minutes) => `${minutes} min read`,
 };
 
+/** Satori's `loadAdditionalAsset`: an emoji grapheme's image from Quartz's emoji map. */
+export async function loadAdditionalAsset(languageCode: string, segment: string) {
+  if (languageCode === "emoji") {
+    // No image in the map: the fonts draw it (instead of failing the build).
+    return (await loadEmoji(getIconCode(segment))) ?? [];
+  }
+
+  return languageCode;
+}
+
 async function generateSocialImage(
   { cfg, description, fonts, title, fileData }: ImageOptions,
   userOpts: SocialImageOptions,
@@ -618,14 +628,7 @@ async function generateSocialImage(
     width,
     height,
     fonts,
-    loadAdditionalAsset: async (languageCode: string, segment: string) => {
-      if (languageCode === "emoji") {
-        // No image in the map: the fonts draw it (instead of failing the build).
-        return (await loadEmoji(getIconCode(segment))) ?? [];
-      }
-
-      return languageCode;
-    },
+    loadAdditionalAsset,
   });
 
   return sharp(Buffer.from(svg)).webp({ quality: 40 });
