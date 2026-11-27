@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BuildCtx, QuartzPluginData } from "@quartz-community/types";
-import { CustomOgImages } from "../src/emitter";
+import { CustomOgImages, userSocialImage } from "../src/emitter";
 
 type VNode = { type: unknown; props: Record<string, unknown> & { children?: unknown } };
 
@@ -75,15 +75,34 @@ describe("social image meta tags", () => {
     expect(CustomOgImages({}).externalResources!(ctx)).toEqual({});
   });
 
-  // bug: og:image:type is `image/` + the file extension, so a `.jpg` social image is announced
-  // as `image/jpg` and an `.svg` one as `image/svg`, which are not media types (image/jpeg,
-  // image/svg+xml).
-  it.fails("announce the media type of a .jpg or .svg social image", () => {
+  // og:image:type used to be `image/` + the file extension, so a `.jpg` social image was announced
+  // as `image/jpg` and an `.svg` one as `image/svg`, which are not media types.
+  it("announce the media type of a .jpg or .svg social image", () => {
     const type = (socialImage: string) =>
       head({ slug: "a" as never, frontmatter: { title: "A", socialImage } }).find(
         ([k]) => k === "og:image:type",
       )?.[1];
     expect(type("a.jpg")).toBe("image/jpeg");
+    expect(type("a.JPEG")).toBe("image/jpeg");
     expect(type("a.svg")).toBe("image/svg+xml");
+    expect(type("https://cdn.example/a.gif?x=1")).toBe("image/gif");
+    expect(type("a.avif")).toBe("image/avif");
+    expect(type("a.png")).toBe("image/png");
+  });
+
+  // an empty `socialImage:` (null) used to skip generating the page's image while its meta tags
+  // pointed at the generated image (a broken link)
+  it("treat an empty socialImage as none: the generated image, which is then emitted", () => {
+    for (const socialImage of [null, "", "  "]) {
+      const page = {
+        slug: "a" as never,
+        filePath: "content/a.md" as never,
+        frontmatter: { title: "A", socialImage } as never,
+      };
+      expect(head(page)).toContainEqual(["og:image", "https://example.com/site/a-og-image.webp"]);
+      expect(userSocialImage(page.frontmatter)).toBeUndefined();
+    }
+    expect(userSocialImage({ socialImage: "cover.png" })).toBe("cover.png");
+    expect(userSocialImage(undefined)).toBeUndefined();
   });
 });

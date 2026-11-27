@@ -73,6 +73,36 @@ function getFileExtension(path: string): string | undefined {
   return path.match(/\.([^./?#]+)(?:[?#]|$)/)?.[1];
 }
 
+/** File extensions of social images → their media type (not always `image/<extension>`). */
+const IMAGE_MIME_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  jfif: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  avif: "image/avif",
+  svg: "image/svg+xml",
+  ico: "image/x-icon",
+  bmp: "image/bmp",
+};
+
+/** The media type of an image path or URL, by its extension (`image/png` if unknown). */
+export function imageMimeType(path: string): string {
+  const ext = getFileExtension(path)?.toLowerCase();
+  return (ext && IMAGE_MIME_TYPES[ext]) ?? "image/png";
+}
+
+/**
+ * The page's own social image (frontmatter `socialImage`), if it sets one. An empty
+ * `socialImage:` (null) or `""` counts as none: the page gets a generated image, and its meta tags
+ * point at that image.
+ */
+export function userSocialImage(frontmatter: { socialImage?: unknown } | undefined) {
+  const image = frontmatter?.socialImage;
+  return typeof image === "string" && image.trim() !== "" ? image : undefined;
+}
+
 function isAbsoluteURL(url: string): boolean {
   return /^https?:\/\//.test(url);
 }
@@ -712,7 +742,7 @@ export const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>> = 
 
       for (const [_tree, vfile] of content) {
         const data = vfile.data as QuartzPluginData;
-        if (data.frontmatter?.socialImage !== undefined) continue;
+        if (userSocialImage(data.frontmatter) !== undefined) continue;
         yield processOgImage(ctx, data, fonts, fullOptions);
       }
     },
@@ -730,7 +760,7 @@ export const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>> = 
       for (const changeEvent of changeEvents) {
         if (!changeEvent.file) continue;
         const data = changeEvent.file.data as QuartzPluginData;
-        if (data.frontmatter?.socialImage !== undefined) continue;
+        if (userSocialImage(data.frontmatter) !== undefined) continue;
         if (changeEvent.type === "add" || changeEvent.type === "change") {
           yield processOgImage(ctx, data, fonts, fullOptions);
         }
@@ -746,7 +776,7 @@ export const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>> = 
         additionalHead: [
           (pageData: QuartzPluginData) => {
             const isRealFile = pageData.filePath !== undefined;
-            let userDefinedOgImagePath = pageData.frontmatter?.socialImage;
+            let userDefinedOgImagePath = userSocialImage(pageData.frontmatter);
 
             if (userDefinedOgImagePath) {
               userDefinedOgImagePath = isAbsoluteURL(userDefinedOgImagePath)
@@ -760,7 +790,7 @@ export const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>> = 
             const defaultOgImagePath = `https://${baseUrl}/static/og-image.png`;
             const ogImagePath =
               userDefinedOgImagePath ?? generatedOgImagePath ?? defaultOgImagePath;
-            const ogImageMimeType = `image/${getFileExtension(ogImagePath) ?? "png"}`;
+            const ogImageMimeType = imageMimeType(ogImagePath);
             return (
               <>
                 {!userDefinedOgImagePath && (
