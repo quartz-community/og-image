@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.4
+
+### Patch Changes
+
+- 6d414ac: A page with an empty `socialImage:` in its frontmatter now gets a generated social image; before, none was generated while its meta tags pointed at it.
+- 6d414ac: `og:image:type` is now the image's real media type (`image/jpeg` for `.jpg`, `image/svg+xml` for `.svg`, …) instead of `image/` + the file extension.
+
 ## 1.1.3
 
 ### Patch Changes
