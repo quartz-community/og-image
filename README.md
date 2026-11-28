@@ -27,6 +27,14 @@ plugins:
 
 `baseUrl` must be set in `configuration`: the image meta tags need absolute URLs and are not emitted without it. Each page gets an image at `<slug>-og-image.webp`; pages with a `socialImage` in their frontmatter are skipped.
 
+A page chooses its own image with `socialImage`, or Obsidian (Publish)'s `image` or `cover` property:
+
+- a URL (`https://…`) is used as is;
+- an image in the content folder, written as a wikilink (`[[cover.png]]`), a path from the content folder (`Attachments/cover.png`), a path relative to the note (`./cover.png`), or a bare file name (the note's folder first, then the shortest path), points at that image as Quartz publishes it;
+- anything else is a path in `quartz/static/` (`covers/a.png` → `/static/covers/a.png`).
+
+With `publishAssets: referenced`, an image used only as a social image is not published; embed it in the page or use `all`.
+
 The options that take functions (`imageStructure`, `readingTimeText`) need a TypeScript override:
 
 ```ts title="quartz.ts (override)"
