@@ -15,6 +15,7 @@ import type {
 } from "@quartz-community/types";
 import { joinSegments } from "@quartz-community/types";
 import { unescapeHTML } from "@quartz-community/utils";
+import { slugifyFilePath } from "@quartz-community/utils/path";
 import { getDate } from "@quartz-community/utils/sort";
 import type { JSX } from "preact";
 import { type ThemeKey } from "@quartz-community/types";
@@ -105,6 +106,61 @@ export function userSocialImage(frontmatter: { socialImage?: unknown } | undefin
 
 function isAbsoluteURL(url: string): boolean {
   return /^https?:\/\//.test(url);
+}
+
+/**
+ * The content file a page's social image names, as Obsidian (Publish) reads the `image` and
+ * `cover` properties: a wikilink (`[[cover.png]]`, `![[cover.png|alt]]`), a path from the content
+ * folder (`Attachments/cover.png`, `/Attachments/cover.png`), a path relative to the note
+ * (`./cover.png`, `../img/cover.png`), or a bare file name found anywhere, preferring the note's
+ * own folder, then the shortest path. Undefined when no content file matches, so the value is
+ * read as a path in `static/`, as before.
+ *
+ * @param value - The frontmatter value.
+ * @param notePath - The page's path relative to the content folder (`notes/a.md`).
+ * @param allFiles - Every file in the content folder, relative to it.
+ */
+export function resolveContentImage(
+  value: string,
+  notePath: string | undefined,
+  allFiles: readonly string[] | undefined,
+): string | undefined {
+  if (!allFiles || allFiles.length === 0) return undefined;
+
+  let target = value.trim();
+  const wikilink = /^!?\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]$/.exec(target);
+  if (wikilink) target = wikilink[1]!.trim();
+  try {
+    target = decodeURI(target);
+  } catch {
+    // keep it as written
+  }
+  if (target === "") return undefined;
+
+  const files = new Set(allFiles);
+  const noteDir = notePath ? path.posix.dirname(notePath) : ".";
+  const inContent = (candidate: string) => {
+    const normalized = path.posix.normalize(candidate);
+    return normalized.startsWith("../") ? undefined : normalized;
+  };
+
+  const candidates =
+    target.startsWith("./") || target.startsWith("../")
+      ? [path.posix.join(noteDir, target)]
+      : target.startsWith("/")
+        ? [target.slice(1)]
+        : [target, path.posix.join(noteDir, target)];
+  for (const candidate of candidates) {
+    const file = inContent(candidate);
+    if (file && files.has(file)) return file;
+  }
+
+  if (target.includes("/")) return undefined;
+  const sameName = allFiles.filter((file) => path.posix.basename(file) === target);
+  return (
+    sameName.find((file) => path.posix.dirname(file) === noteDir) ??
+    [...sameName].sort((a, b) => a.length - b.length || a.localeCompare(b))[0]
+  );
 }
 
 function formatDate(d: Date, locale: string = "en-US"): string {
@@ -778,9 +834,14 @@ export const CustomOgImages: QuartzEmitterPlugin<Partial<SocialImageOptions>> = 
             const isRealFile = pageData.filePath !== undefined;
             let userDefinedOgImagePath = userSocialImage(pageData.frontmatter);
 
-            if (userDefinedOgImagePath) {
-              userDefinedOgImagePath = isAbsoluteURL(userDefinedOgImagePath)
-                ? userDefinedOgImagePath
+            if (userDefinedOgImagePath && !isAbsoluteURL(userDefinedOgImagePath)) {
+              const contentImage = resolveContentImage(
+                userDefinedOgImagePath,
+                pageData.relativePath,
+                ctx.allFiles,
+              );
+              userDefinedOgImagePath = contentImage
+                ? `https://${baseUrl}/${slugifyFilePath(contentImage as FilePath)}`
                 : `https://${baseUrl}/static/${userDefinedOgImagePath}`;
             }
 
